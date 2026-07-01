@@ -180,6 +180,7 @@ export default function FocusMode() {
       handleSessionComplete(true);
     }
     return () => clearInterval(intervalRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isActive, timeLeft]);
 
   // ─── Play sound ─────────────────────────────────────────────────────────────
@@ -194,7 +195,7 @@ export default function FocusMode() {
       gain.gain.setValueAtTime(0.15, ctx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1);
       osc.start(); osc.stop(ctx.currentTime + 1);
-    } catch {}
+    } catch { /* ignore */ }
   };
 
   // ─── Save session to Firestore ───────────────────────────────────────────────
@@ -224,7 +225,7 @@ export default function FocusMode() {
   };
 
   // ─── Session complete ────────────────────────────────────────────────────────
-  const handleSessionComplete = async (completed) => {
+  async function handleSessionComplete(completed) {
     clearInterval(intervalRef.current);
     playSound(completed ? 880 : 440);
     await saveSession(completed);

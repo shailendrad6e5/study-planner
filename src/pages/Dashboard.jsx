@@ -31,6 +31,7 @@ export default function Dashboard() {
           .catch(() => {});
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userProfile]);
 
   const refreshStats = useCallback(async () => {

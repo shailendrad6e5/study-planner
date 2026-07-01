@@ -22,13 +22,47 @@ const navItems = [
   { name: 'Settings',   path: '/settings',    icon: Settings,       emoji: '⚙️' },
 ];
 
+// eslint-disable-next-line no-unused-vars
+function SidebarNavItem({ name, path, icon: Icon }) {
+  return (
+    <NavLink key={name} to={path} className={({ isActive }) =>
+      `flex items-center gap-3 px-4 py-2.5 rounded-2xl text-sm font-medium transition-all duration-200 group ${
+        isActive
+          ? 'bg-gradient-to-r from-primary-500/12 to-secondary-500/8 dark:from-primary-500/25 dark:to-secondary-500/15 text-primary-700 dark:text-primary-300 border border-primary-200/60 dark:border-primary-700/40 shadow-sm'
+          : 'text-gray-600 dark:text-gray-400 hover:bg-indigo-50/80 dark:hover:bg-indigo-900/20 hover:text-primary-700 dark:hover:text-primary-300'
+      }`
+    }>
+      {({ isActive }) => (
+        <>
+          <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 transition-all duration-200 ${
+            isActive
+              ? 'bg-gradient-to-br from-primary-500 to-secondary-500 text-white shadow-glow-sm'
+              : 'bg-gray-100 dark:bg-gray-800/60 text-gray-500 dark:text-gray-400 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900/30 group-hover:text-primary-600 dark:group-hover:text-primary-400'
+          }`}>
+            <Icon className="w-4 h-4" />
+          </div>
+          <span>{name}</span>
+          {isActive && (
+            <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary-500" />
+          )}
+        </>
+      )}
+    </NavLink>
+  );
+}
+
 export default function Sidebar() {
   const { isDarkMode, toggleTheme } = useTheme();
   const { currentUser, userProfile, logout } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
-    try { await logout(); navigate('/login'); } catch {}
+    try {
+      await logout();
+      navigate('/login');
+    } catch (err) {
+      console.error('Logout failed:', err);
+    }
   };
 
   const displayName = userProfile?.name || currentUser?.displayName || currentUser?.email?.split('@')[0] || 'Student';
@@ -81,30 +115,8 @@ export default function Sidebar() {
         <p className="px-3 mb-2 text-[10px] font-bold tracking-widest uppercase text-gray-400 dark:text-gray-600">
           Navigation
         </p>
-        {navItems.map(({ name, path, icon: Icon }) => (
-          <NavLink key={name} to={path} className={({ isActive }) =>
-            `flex items-center gap-3 px-4 py-2.5 rounded-2xl text-sm font-medium transition-all duration-200 group ${
-              isActive
-                ? 'bg-gradient-to-r from-primary-500/12 to-secondary-500/8 dark:from-primary-500/25 dark:to-secondary-500/15 text-primary-700 dark:text-primary-300 border border-primary-200/60 dark:border-primary-700/40 shadow-sm'
-                : 'text-gray-600 dark:text-gray-400 hover:bg-indigo-50/80 dark:hover:bg-indigo-900/20 hover:text-primary-700 dark:hover:text-primary-300'
-            }`
-          }>
-            {({ isActive }) => (
-              <>
-                <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 transition-all duration-200 ${
-                  isActive
-                    ? 'bg-gradient-to-br from-primary-500 to-secondary-500 text-white shadow-glow-sm'
-                    : 'bg-gray-100 dark:bg-gray-800/60 text-gray-500 dark:text-gray-400 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900/30 group-hover:text-primary-600 dark:group-hover:text-primary-400'
-                }`}>
-                  <Icon className="w-4 h-4" />
-                </div>
-                <span>{name}</span>
-                {isActive && (
-                  <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary-500" />
-                )}
-              </>
-            )}
-          </NavLink>
+        {navItems.map((item) => (
+          <SidebarNavItem key={item.name} {...item} />
         ))}
       </nav>
 

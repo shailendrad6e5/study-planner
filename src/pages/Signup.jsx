@@ -68,8 +68,9 @@ export default function Signup() {
     } catch (err) {
       console.error(err.code, err.message);
       setError(getSignupError(err.code));
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleGoogleSignIn = async () => {
@@ -80,10 +81,12 @@ export default function Signup() {
       navigate('/dashboard', { replace: true });
     } catch (err) {
       if (err.code !== 'auth/popup-closed-by-user') {
+        console.error('Google sign-in error:', err.code, err.message);
         setError({ text: 'Google sign-in failed. Try again.', field: null });
       }
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (

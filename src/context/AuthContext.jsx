@@ -4,13 +4,16 @@ import {
   signInWithEmailAndPassword, 
   signOut, 
   onAuthStateChanged,
-  signInWithPopup
+  signInWithPopup,
+  sendEmailVerification,
+  sendPasswordResetEmail
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db, googleProvider } from '../services/firebase';
 
 const AuthContext = createContext();
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
   return useContext(AuthContext);
 }
@@ -22,18 +25,26 @@ export function AuthProvider({ children }) {
 
   // Sign up and create Firestore user document
   async function signup(email, password, name) {
+    // Step 1: Create the Firebase Auth account — this MUST succeed
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
 
-    // Create user profile document in Firestore
-    await setDoc(doc(db, 'users', user.uid), {
-      name,
-      email,
-      createdAt: serverTimestamp(),
-      motivationScore: 0,
-      streak: 0,
-      isNewUser: true,
-    });
+    // Send verification email immediately
+    await sendEmailVerification(user);
+
+    // Step 2: Create Firestore profile — failures here should NOT block signup
+    try {
+      await setDoc(doc(db, 'users', user.uid), {
+        name,
+        email,
+        createdAt: serverTimestamp(),
+        motivationScore: 0,
+        streak: 0,
+        isNewUser: true,
+      });
+    } catch (firestoreErr) {
+      console.warn('[Auth] Firestore profile creation failed (signup still succeeded):', firestoreErr.message);
+    }
 
     return user;
   }
@@ -43,23 +54,33 @@ export function AuthProvider({ children }) {
     return signInWithEmailAndPassword(auth, email, password);
   }
 
+  // Reset Password
+  function resetPassword(email) {
+    return sendPasswordResetEmail(auth, email);
+  }
+
   // Google Sign-In
   async function signInWithGoogle() {
     const result = await signInWithPopup(auth, googleProvider);
     const user = result.user;
 
     // Create Firestore profile only if it's their first time (doc doesn't exist)
-    const docRef = doc(db, 'users', user.uid);
-    const docSnap = await getDoc(docRef);
-    if (!docSnap.exists()) {
-      await setDoc(docRef, {
-        name: user.displayName || 'Student',
-        email: user.email,
-        createdAt: serverTimestamp(),
-        motivationScore: 0,
-        streak: 0,
-        isNewUser: true,
-      });
+    // Wrap in try/catch so auth still succeeds even if Firestore is unavailable
+    try {
+      const docRef = doc(db, 'users', user.uid);
+      const docSnap = await getDoc(docRef);
+      if (!docSnap.exists()) {
+        await setDoc(docRef, {
+          name: user.displayName || 'Student',
+          email: user.email,
+          createdAt: serverTimestamp(),
+          motivationScore: 0,
+          streak: 0,
+          isNewUser: true,
+        });
+      }
+    } catch (firestoreErr) {
+      console.warn('[Auth] Firestore profile creation failed during Google sign-in:', firestoreErr.message);
     }
 
     return user;
@@ -67,6 +88,7 @@ export function AuthProvider({ children }) {
 
   // Logout
   function logout() {
+    setUserProfile(null);
     return signOut(auth);
   }
 
@@ -77,9 +99,13 @@ export function AuthProvider({ children }) {
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
         setUserProfile(docSnap.data());
+      } else {
+        // Profile doesn't exist yet — set a default so the app doesn't break
+        setUserProfile(null);
       }
     } catch (err) {
-      console.error('Error loading user profile:', err);
+      console.warn('[Auth] Error loading user profile (app will still work):', err.message);
+      setUserProfile(null);
     }
   }
 
@@ -104,6 +130,7 @@ export function AuthProvider({ children }) {
     signup,
     login,
     logout,
+    resetPassword,
     signInWithGoogle,
     loadUserProfile,
   };

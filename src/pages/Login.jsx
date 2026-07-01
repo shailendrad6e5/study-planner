@@ -56,8 +56,9 @@ export default function Login() {
     } catch (err) {
       console.error(err.code, err.message);
       setError(getLoginError(err.code));
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleGoogleSignIn = async () => {
@@ -68,10 +69,12 @@ export default function Login() {
       navigate(from, { replace: true });
     } catch (err) {
       if (err.code !== 'auth/popup-closed-by-user') {
+        console.error('Google sign-in error:', err.code, err.message);
         setError({ text: 'Google sign-in failed. Try again.', field: null });
       }
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const fieldBorder = (field) => {
@@ -140,6 +143,11 @@ export default function Login() {
               </button>
             </div>
             {passwordError && <p className="mt-1 text-xs text-red-500 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{passwordError}</p>}
+            <div className="flex justify-end mt-2">
+              <Link to="/forgot-password" className="text-xs font-semibold text-primary-600 dark:text-primary-400 hover:text-primary-500 transition-colors">
+                Forgot password?
+              </Link>
+            </div>
           </div>
 
           {/* Hint box */}
@@ -147,7 +155,7 @@ export default function Login() {
             <p className="font-semibold mb-1">Sign-in rules:</p>
             <p>• Email: must be a valid format — e.g. <strong>name@gmail.com</strong></p>
             <p>• Password: at least <strong>6 characters</strong></p>
-            <p>• Forgot your password? Use <strong>Google Sign-In</strong> if you registered with Google</p>
+            <p>• Forgot password? Click the <strong>Forgot password?</strong> link above to reset it.</p>
           </div>
 
           <button type="submit" disabled={loading}
