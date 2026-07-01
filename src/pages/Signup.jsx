@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { UserPlus, Eye, EyeOff, AlertCircle, CheckCircle2 } from 'lucide-react';
 
@@ -33,7 +33,8 @@ const STRENGTH_COLOR = ['bg-red-400', 'bg-orange-400', 'bg-yellow-400', 'bg-blue
 
 export default function Signup() {
   const navigate = useNavigate();
-  const { signup, signInWithGoogle } = useAuth();
+  const location = useLocation();
+  const { signup, signInWithGoogle, currentUser } = useAuth();
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -42,6 +43,14 @@ export default function Signup() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [touched, setTouched] = useState({ name: false, email: false, password: false });
+
+  const from = location.state?.from?.pathname || '/dashboard';
+
+  useEffect(() => {
+    if (currentUser) {
+      navigate(from, { replace: true });
+    }
+  }, [currentUser, navigate, from]);
 
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   const emailError = touched.email && email && !emailValid ? 'Enter a valid email (e.g. name@gmail.com)' : null;

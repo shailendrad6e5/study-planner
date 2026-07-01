@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { LogIn, Eye, EyeOff, AlertCircle, CheckCircle2 } from 'lucide-react';
@@ -28,7 +28,16 @@ function getLoginError(code) {
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, signInWithGoogle } = useAuth();
+  const { login, signInWithGoogle, currentUser } = useAuth();
+
+  const from = location.state?.from?.pathname || '/dashboard';
+
+  // Auto-redirect if already logged in (handles Google Redirect result)
+  useEffect(() => {
+    if (currentUser) {
+      navigate(from, { replace: true });
+    }
+  }, [currentUser, navigate, from]);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
