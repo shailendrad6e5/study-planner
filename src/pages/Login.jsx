@@ -46,8 +46,6 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [touched, setTouched] = useState({ email: false, password: false });
 
-  const from = location.state?.from?.pathname || '/dashboard';
-
   // Inline validators
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   const emailError = touched.email && email && !emailValid ? 'Enter a valid email (e.g. name@gmail.com)' : null;
