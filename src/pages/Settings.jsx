@@ -10,8 +10,8 @@ export default function Settings() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  // Pre-fill with real user data
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setName(userProfile?.name || currentUser?.displayName || '');
   }, [userProfile, currentUser]);
 
@@ -38,7 +38,7 @@ export default function Settings() {
       </header>
 
       <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 border border-gray-100 dark:border-gray-800 shadow-sm space-y-6 transition-colors">
-        
+
         {/* Profile section */}
         <div>
           <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Profile</h3>
