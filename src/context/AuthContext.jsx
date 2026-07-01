@@ -4,7 +4,8 @@ import {
   signInWithEmailAndPassword, 
   signOut, 
   onAuthStateChanged,
-  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   sendEmailVerification,
   sendPasswordResetEmail
 } from 'firebase/auth';
@@ -23,16 +24,53 @@ export function AuthProvider({ children }) {
   const [userProfile, setUserProfile] = useState(null); // Firestore user data
   const [loading, setLoading] = useState(true);
 
+  // Handle Google Sign-In Redirect Result
+  useEffect(() => {
+    getRedirectResult(auth).then(async (result) => {
+      if (result?.user) {
+        const user = result.user;
+        try {
+          const docRef = doc(db, 'users', user.uid);
+          const docSnap = await getDoc(docRef);
+          if (!docSnap.exists()) {
+            await setDoc(docRef, {
+              name: user.displayName || 'Student',
+              email: user.email,
+              createdAt: serverTimestamp(),
+              motivationScore: 0,
+              streak: 0,
+              isNewUser: true,
+            });
+          }
+        } catch (firestoreErr) {
+          console.warn('[Auth] Firestore profile creation failed during Google sign-in:', firestoreErr.message);
+        }
+      }
+    }).catch((err) => {
+      console.error('Redirect sign-in error:', err);
+    });
+  }, []);
+
+  // Listen to Firebase Auth state changes
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      setCurrentUser(user);
+      if (user) {
+        await loadUserProfile(user.uid);
+      } else {
+        setUserProfile(null);
+      }
+      setLoading(false);
+    });
+
+    return unsubscribe;
+  }, []);
+
   // Sign up and create Firestore user document
   async function signup(email, password, name) {
-    // Step 1: Create the Firebase Auth account — this MUST succeed
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
-
-    // Send verification email immediately
     await sendEmailVerification(user);
-
-    // Step 2: Create Firestore profile — failures here should NOT block signup
     try {
       await setDoc(doc(db, 'users', user.uid), {
         name,
@@ -45,7 +83,6 @@ export function AuthProvider({ children }) {
     } catch (firestoreErr) {
       console.warn('[Auth] Firestore profile creation failed (signup still succeeded):', firestoreErr.message);
     }
-
     return user;
   }
 
@@ -59,31 +96,9 @@ export function AuthProvider({ children }) {
     return sendPasswordResetEmail(auth, email);
   }
 
-  // Google Sign-In
-  async function signInWithGoogle() {
-    const result = await signInWithPopup(auth, googleProvider);
-    const user = result.user;
-
-    // Create Firestore profile only if it's their first time (doc doesn't exist)
-    // Wrap in try/catch so auth still succeeds even if Firestore is unavailable
-    try {
-      const docRef = doc(db, 'users', user.uid);
-      const docSnap = await getDoc(docRef);
-      if (!docSnap.exists()) {
-        await setDoc(docRef, {
-          name: user.displayName || 'Student',
-          email: user.email,
-          createdAt: serverTimestamp(),
-          motivationScore: 0,
-          streak: 0,
-          isNewUser: true,
-        });
-      }
-    } catch (firestoreErr) {
-      console.warn('[Auth] Firestore profile creation failed during Google sign-in:', firestoreErr.message);
-    }
-
-    return user;
+  // Google Sign-In (Redirect)
+  function signInWithGoogle() {
+    return signInWithRedirect(auth, googleProvider);
   }
 
   // Logout
@@ -100,29 +115,13 @@ export function AuthProvider({ children }) {
       if (docSnap.exists()) {
         setUserProfile(docSnap.data());
       } else {
-        // Profile doesn't exist yet — set a default so the app doesn't break
         setUserProfile(null);
       }
     } catch (err) {
-      console.warn('[Auth] Error loading user profile (app will still work):', err.message);
+      console.warn('[Auth] Error loading user profile:', err.message);
       setUserProfile(null);
     }
   }
-
-  // Listen to Firebase Auth state changes
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setCurrentUser(user);
-      if (user) {
-        await loadUserProfile(user.uid);
-      } else {
-        setUserProfile(null);
-      }
-      setLoading(false);
-    });
-
-    return unsubscribe;
-  }, []);
 
   const value = {
     currentUser,
