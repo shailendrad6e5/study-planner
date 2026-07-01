@@ -82,7 +82,7 @@ export default function Signup() {
     } catch (err) {
       if (err.code !== 'auth/popup-closed-by-user') {
         console.error('Google sign-in error:', err.code, err.message);
-        setError({ text: 'Google sign-in failed. Try again.', field: null });
+        setError({ text: 'Google sign-in failed: ' + err.message, field: null });
       }
     } finally {
       setLoading(false);
