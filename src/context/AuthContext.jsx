@@ -4,8 +4,7 @@ import {
   signInWithEmailAndPassword, 
   signOut, 
   onAuthStateChanged,
-  signInWithRedirect,
-  getRedirectResult,
+  signInWithPopup,
   sendEmailVerification,
   sendPasswordResetEmail
 } from 'firebase/auth';
@@ -23,33 +22,6 @@ export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [userProfile, setUserProfile] = useState(null); // Firestore user data
   const [loading, setLoading] = useState(true);
-
-  // Handle Google Sign-In Redirect Result
-  useEffect(() => {
-    getRedirectResult(auth).then(async (result) => {
-      if (result?.user) {
-        const user = result.user;
-        try {
-          const docRef = doc(db, 'users', user.uid);
-          const docSnap = await getDoc(docRef);
-          if (!docSnap.exists()) {
-            await setDoc(docRef, {
-              name: user.displayName || 'Student',
-              email: user.email,
-              createdAt: serverTimestamp(),
-              motivationScore: 0,
-              streak: 0,
-              isNewUser: true,
-            });
-          }
-        } catch (firestoreErr) {
-          console.warn('[Auth] Firestore profile creation failed during Google sign-in:', firestoreErr.message);
-        }
-      }
-    }).catch((err) => {
-      console.error('Redirect sign-in error:', err);
-    });
-  }, []);
 
   // Listen to Firebase Auth state changes
   useEffect(() => {
@@ -96,9 +68,29 @@ export function AuthProvider({ children }) {
     return sendPasswordResetEmail(auth, email);
   }
 
-  // Google Sign-In (Redirect)
-  function signInWithGoogle() {
-    return signInWithRedirect(auth, googleProvider);
+  // Google Sign-In
+  async function signInWithGoogle() {
+    const result = await signInWithPopup(auth, googleProvider);
+    const user = result.user;
+
+    try {
+      const docRef = doc(db, 'users', user.uid);
+      const docSnap = await getDoc(docRef);
+      if (!docSnap.exists()) {
+        await setDoc(docRef, {
+          name: user.displayName || 'Student',
+          email: user.email,
+          createdAt: serverTimestamp(),
+          motivationScore: 0,
+          streak: 0,
+          isNewUser: true,
+        });
+      }
+    } catch (firestoreErr) {
+      console.warn('[Auth] Firestore profile creation failed during Google sign-in:', firestoreErr.message);
+    }
+
+    return user;
   }
 
   // Logout
